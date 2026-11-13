@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://paynthra2-0.onrender.com/api",
+  baseURL: "http://locahost:4001/api",
   withCredentials: true,
 });
 
