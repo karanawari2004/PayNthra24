@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import "./Admin.css";
+import "./Report.css";
 
 export default function Admin({ onLogout }) {
   const navigate = useNavigate();
@@ -41,6 +42,10 @@ export default function Admin({ onLogout }) {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchClubName, setSearchClubName] = useState("");
+  const [searchEventDate, setSearchEventDate] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
 
   
   const handleAddClub = () => {
@@ -509,6 +514,61 @@ export default function Admin({ onLogout }) {
     }
   };
 
+  // Filter report history independently by club name and event start date.
+  // If both fields are entered, reports must match both filters.
+  const filteredHistory = history.filter((item) => {
+    const clubSearch = searchClubName.trim().toLowerCase();
+    const dateSearch = searchEventDate.trim();
+
+    const reportClubName = String(item.clubName || "").toLowerCase();
+    const reportStartDate = String(item.eventDate || "").slice(0, 10);
+
+    const matchesClub =
+      !clubSearch || reportClubName.includes(clubSearch);
+    const matchesDate =
+      !dateSearch || reportStartDate === dateSearch;
+
+    return matchesClub && matchesDate;
+  });
+
+  const handlePreview = () => {
+    if (!clubName.trim() || !eventId.trim() || !eventDate || !eventEndDate) {
+      alert("Please select a club and enter the event ID, start date, and end date before previewing.");
+      return;
+    }
+
+    if (new Date(`${eventEndDate}T00:00:00`) < new Date(`${eventDate}T00:00:00`)) {
+      alert("Event end date cannot be earlier than the start date.");
+      return;
+    }
+
+    setPreviewData({
+      clubName: clubName.trim(),
+      eventId: eventId.trim(),
+      eventDate,
+      eventEndDate,
+      topUps: topUps || "0",
+      sales: sales || "0",
+      devices: devices || "0",
+      days: days || "1",
+      card: card || "0",
+      cash: cash || "0",
+      upi: upi || "0",
+      coverAmount: coverAmount || "0",
+      updateAmount: updateAmount || "0",
+      activations: activations || "0",
+      activationRate: activationRate || "0",
+      manPower: manPower || "0",
+      manpowerRate: manpowerRate || "0",
+      licenceFeeRate: licenceFeeRate || "0",
+      gstRate: gstRate || "0",
+    });
+    setPreviewOpen(true);
+  };
+
+  const previewMoney = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -551,7 +611,7 @@ export default function Admin({ onLogout }) {
       </header>
 
       <div className="admin-content">
-        <form className="admin-form" onSubmit={handleSubmit}>
+        <form id="admin-report-form" className="admin-form" onSubmit={handleSubmit}>
           <h2>{editingId ? "Update Club Report" : "Create Club Report"}</h2>
 
         
@@ -867,6 +927,15 @@ export default function Admin({ onLogout }) {
           </div>
 
           <button
+            type="button"
+            className="admin-preview-btn"
+            onClick={handlePreview}
+            disabled={loading}
+          >
+            Preview Payslip
+          </button>
+
+          <button
             type="submit"
             className="admin-save-btn"
             disabled={loading}
@@ -894,6 +963,36 @@ export default function Admin({ onLogout }) {
 
         
         <section className="history-section">
+          <div className="history-search">
+            <input
+              type="search"
+              aria-label="Search by club name"
+              placeholder="Search by club name..."
+              value={searchClubName}
+              onChange={(e) => setSearchClubName(e.target.value)}
+            />
+
+            <input
+              type="date"
+              aria-label="Filter by event start date"
+              title="Filter by event start date"
+              value={searchEventDate}
+              onChange={(e) => setSearchEventDate(e.target.value)}
+            />
+
+            {(searchClubName || searchEventDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchClubName("");
+                  setSearchEventDate("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           <div className="history-heading">
             <h2>Report History</h2>
 
@@ -908,8 +1007,12 @@ export default function Admin({ onLogout }) {
 
           {historyLoading ? (
             <p>Loading report history...</p>
-          ) : history.length === 0 ? (
-            <p>No reports found.</p>
+          ) : filteredHistory.length === 0 ? (
+            <p>
+              {searchClubName || searchEventDate
+                ? "No matching reports found."
+                : "No reports found."}
+            </p>
           ) : (
             <div className="history-table-wrapper">
               <table className="history-table">
@@ -926,7 +1029,7 @@ export default function Admin({ onLogout }) {
                 </thead>
 
                 <tbody>
-                  {history.map((item) => (
+                  {filteredHistory.map((item) => (
                     <tr key={item._id}>
                       <td>{item.clubName || "-"}</td>
                       <td>{item.eventId || "-"}</td>
@@ -970,6 +1073,222 @@ export default function Admin({ onLogout }) {
           )}
         </section>
       </div>
+
+      {previewOpen && previewData && (
+        <div
+          className="payslip-preview-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-title"
+        >
+          <div className="payslip-preview-modal">
+            <div className="payslip-preview-toolbar">
+              <h2 id="preview-title">Payslip Preview</h2>
+              <button
+                type="button"
+                className="preview-close-btn"
+                onClick={() => setPreviewOpen(false)}
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+            </div>
+
+            {/*
+              Preview uses the same payslip class names and table structure
+              as Report.jsx / Report.css so it looks like the final payslip.
+            */}
+            <div className="payslip preview-payslip">
+              <div className="payslip-brand">
+                <div className="atomx-text-logo">
+                  <span className="atomx-name">PayNthra</span>
+                  <span className="atomx-highlight">atomx</span>
+                </div>
+              </div>
+
+              <div className="payslip-heading">
+                <h2>PAYSLIP</h2>
+                <h3 className="payslip-club">{previewData.clubName}</h3>
+                <p className="payslip-date">
+                  {formatDate(previewData.eventDate)} - {formatDate(previewData.eventEndDate)}
+                </p>
+                <p className="report-description">
+                  Event ID: {previewData.eventId || "-"}
+                </p>
+              </div>
+
+              <table className="payslip-table">
+                <thead>
+                  <tr><th colSpan="2" className="table-heading">SUMMARY</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td className="report-label">TOPUPS</td><td className="report-amount">{previewMoney(previewData.topUps)}</td></tr>
+                  <tr><td className="report-label">SALES</td><td className="report-amount">{previewMoney(previewData.sales)}</td></tr>
+                  <tr><td className="report-label">DEVICES</td><td className="report-amount">{previewData.devices}</td></tr>
+                  <tr><td className="report-label">DAYS</td><td className="report-amount">{previewData.days}</td></tr>
+                  <tr className="bold-row">
+                    <td className="report-label">
+                      BREAKAGE
+                      <small className="preview-formula">(TOPUPS - SALES - ACTIVATION AMOUNT)</small>
+                    </td>
+                    <td className="report-amount">
+                      {previewMoney(
+                        Number(previewData.topUps) -
+                        Number(previewData.sales) -
+                        (Number(previewData.activations) *
+                          (Number(previewData.activationRate) === 84.746 ? 100 : Number(previewData.activationRate)))
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <table className="payslip-table">
+                <thead>
+                  <tr><th colSpan="2" className="section-heading">AMOUNT WITH PayNthra</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td className="report-label">CARD</td><td className="report-amount">{previewMoney(previewData.card)}</td></tr>
+                  <tr><td className="report-label">CASH (HANDOVER)</td><td className="report-amount">{previewMoney(previewData.cash)}</td></tr>
+                  {Number(previewData.coverAmount) > 0 && (
+                    <tr><td className="report-label">COVER (HANDOVER)</td><td className="report-amount">{previewMoney(previewData.coverAmount)}</td></tr>
+                  )}
+                  <tr><td className="report-label">UPI</td><td className="report-amount">{previewMoney(previewData.upi)}</td></tr>
+                  {Number(previewData.updateAmount) > 0 && (
+                    <tr><td className="report-label">UPDATE AMOUNT</td><td className="report-amount">{previewMoney(previewData.updateAmount)}</td></tr>
+                  )}
+                  <tr className="bold-row">
+                    <td className="report-label">SUB TOTAL</td>
+                    <td className="report-amount">{previewMoney(Number(previewData.card) + Number(previewData.upi) + Number(previewData.updateAmount))}</td>
+                  </tr>
+                  <tr className="bold-row">
+                    <td className="report-label">TOTAL</td>
+                    <td className="report-amount">{previewMoney(Number(previewData.card) + Number(previewData.upi) + Number(previewData.updateAmount))}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <table className="payslip-table">
+                <thead>
+                  <tr><th colSpan="2" className="section-heading">INVOICE</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="report-label">
+                      LICENCE FEE ({previewData.licenceFeeRate}%)
+                      <small className="preview-formula">(TOPUPS × {previewData.licenceFeeRate}%)</small>
+                    </td>
+                    <td className="report-amount">
+                      {previewMoney(Number(previewData.topUps) * Number(previewData.licenceFeeRate) / 100)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="report-label">
+                      ACTIVATIONS ({previewData.activations} × ₹{Number(previewData.activationRate).toLocaleString("en-IN")})
+                    </td>
+                    <td className="report-amount">
+                      {previewMoney(Number(previewData.activations) * Number(previewData.activationRate))}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="report-label">
+                      MANPOWER ({previewData.manPower} × ₹{Number(previewData.manpowerRate).toLocaleString("en-IN")})
+                    </td>
+                    <td className="report-amount">
+                      {previewMoney(Number(previewData.manPower) * Number(previewData.manpowerRate))}
+                    </td>
+                  </tr>
+                  <tr className="bold-row">
+                    <td className="report-label">SUB TOTAL</td>
+                    <td className="report-amount">
+                      {previewMoney(
+                        Number(previewData.topUps) * Number(previewData.licenceFeeRate) / 100 +
+                        Number(previewData.activations) * Number(previewData.activationRate) +
+                        Number(previewData.manPower) * Number(previewData.manpowerRate)
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="report-label">GST ({previewData.gstRate}%)</td>
+                    <td className="report-amount">
+                      {previewMoney(
+                        (Number(previewData.topUps) * Number(previewData.licenceFeeRate) / 100 +
+                        Number(previewData.activations) * Number(previewData.activationRate) +
+                        Number(previewData.manPower) * Number(previewData.manpowerRate)) *
+                        Number(previewData.gstRate) / 100
+                      )}
+                    </td>
+                  </tr>
+                  <tr className="bold-row">
+                    <td className="report-label">TOTAL</td>
+                    <td className="report-amount">
+                      {(() => {
+                        const invoiceSubTotal =
+                          Number(previewData.topUps) * Number(previewData.licenceFeeRate) / 100 +
+                          Number(previewData.activations) * Number(previewData.activationRate) +
+                          Number(previewData.manPower) * Number(previewData.manpowerRate);
+                        return previewMoney(invoiceSubTotal + invoiceSubTotal * Number(previewData.gstRate) / 100);
+                      })()}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <table className="payslip-table">
+                <tbody>
+                  <tr className="payable-row">
+                    <td className="report-label">PAYABLE</td>
+                    <td className="report-amount">
+                      {(() => {
+                        const invoiceSubTotal =
+                          Number(previewData.topUps) * Number(previewData.licenceFeeRate) / 100 +
+                          Number(previewData.activations) * Number(previewData.activationRate) +
+                          Number(previewData.manPower) * Number(previewData.manpowerRate);
+                        const invoiceTotal = invoiceSubTotal + invoiceSubTotal * Number(previewData.gstRate) / 100;
+                        return previewMoney(
+                          Number(previewData.topUps) -
+                          Number(previewData.cash) -
+                          invoiceTotal -
+                          Number(previewData.coverAmount)
+                        );
+                      })()}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="payslip-footer">
+                <p className="payslip-confidential">
+                  This report is confidential and intended for authorized use only.
+                </p>
+                <p className="payslip-reference">Ref: Generated after saving</p>
+                <p className="payslip-reference">Preview only - not saved</p>
+              </div>
+            </div>
+
+            <div className="payslip-preview-actions">
+              <button
+                type="button"
+                className="preview-back-btn"
+                onClick={() => setPreviewOpen(false)}
+              >
+                Back to Edit
+              </button>
+              <button
+                type="button"
+                className="admin-save-btn"
+                disabled={loading}
+                onClick={() => {
+                  setPreviewOpen(false);
+                  document.getElementById("admin-report-form")?.requestSubmit();
+                }}
+              >
+                {loading ? "Saving..." : editingId ? "Confirm Update" : "Confirm & Save Report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

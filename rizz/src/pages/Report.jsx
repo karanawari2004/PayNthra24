@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
@@ -107,7 +108,45 @@ export default function Report({ onLogout }) {
         finalHeight
       );
 
-      pdf.save(`${report.clubName || "Club"}-Report.pdf`);
+      // =====================================
+      // PDF TITLE AND METADATA
+      // =====================================
+
+      const club = report.clubName || "Club";
+      const eventStartDate = formatDate(report.eventDate);
+      const payableAmount = formatMoney(report.payable);
+
+      const pdfTitle = `${club}, ${eventStartDate}`;
+
+      const pdfDescription =
+        `Club: ${club} | ` +
+        `Event Date: ${eventStartDate} | ` +
+        `Payable: ${payableAmount}`;
+
+      pdf.setProperties({
+        title: pdfTitle,
+        subject: pdfDescription,
+        author: "PayNthra",
+        keywords: `PayNthra, ${club}, ${eventStartDate}, ${payableAmount}`,
+        creator: "PayNthra Club Management",
+      });
+
+      // =====================================
+      // DYNAMIC PDF FILE NAME
+      // =====================================
+
+      const safeClubName = String(club)
+        .replace(/[<>:"/\\|?*]/g, "-")
+        .trim();
+
+      const safeDate = eventStartDate.replace(/[, ]/g, "-");
+
+      const fileName =
+        `${safeClubName}-${safeDate}-Payable-${Number(
+          report.payable ?? 0
+        ).toFixed(2)}.pdf`;
+
+      pdf.save(fileName);
 
     } catch (error) {
       console.error("PDF download error:", error);
@@ -477,19 +516,19 @@ export default function Report({ onLogout }) {
           <tbody>
 
             <tr>
-            <td className="report-label">
-  LICENCE FEE ({licenceFeeRate ?? 0}%)
+              <td className="report-label">
+                LICENCE FEE ({licenceFeeRate ?? 0}%)
 
-  <small
-    style={{
-      fontSize: "8px",
-      fontWeight: "400",
-      marginLeft: "4px",
-    }}
-  >
-    (TOPUPS × {licenceFeeRate ?? 0}%)
-  </small>
-</td>
+                <small
+                  style={{
+                    fontSize: "8px",
+                    fontWeight: "400",
+                    marginLeft: "4px",
+                  }}
+                >
+                  (TOPUPS × {licenceFeeRate ?? 0}%)
+                </small>
+              </td>
 
               <td className="report-amount">
                 {formatMoney(licenceFee)}
