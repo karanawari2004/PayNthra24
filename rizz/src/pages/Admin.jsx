@@ -961,24 +961,32 @@ export default function Admin({ onLogout }) {
           )}
         </form>
 
-        
         <section className="history-section">
           <div className="history-search">
-            <input
-              type="search"
-              aria-label="Search by club name"
-              placeholder="Search by club name..."
-              value={searchClubName}
-              onChange={(e) => setSearchClubName(e.target.value)}
-            />
+            <div className="search-field">
+              <label htmlFor="searchClubName">
+                Search by Club Name
+              </label>
+              <input
+                type="search"
+                id="searchClubName"
+                placeholder="Enter club name..."
+                value={searchClubName}
+                onChange={(e) => setSearchClubName(e.target.value)}
+              />
+            </div>
 
-            <input
-              type="date"
-              aria-label="Filter by event start date"
-              title="Filter by event start date"
-              value={searchEventDate}
-              onChange={(e) => setSearchEventDate(e.target.value)}
-            />
+            <div className="search-field">
+              <label htmlFor="searchEventDate">
+                Search by Event Start Date
+              </label>
+              <input
+                type="date"
+                id="searchEventDate"
+                value={searchEventDate}
+                onChange={(e) => setSearchEventDate(e.target.value)}
+              />
+            </div>
 
             {(searchClubName || searchEventDate) && (
               <button
