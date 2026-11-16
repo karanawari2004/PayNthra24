@@ -14,7 +14,11 @@ function authenticateToken(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ["HS256"],
     });
-    req.user = { username: payload.username, role: payload.role };
+    req.user = {
+      id: payload.sub,
+      username: payload.username,
+      role: payload.role,
+    };
     return next();
   } catch (error) {
     if (error.name !== "JsonWebTokenError" && error.name !== "TokenExpiredError") {

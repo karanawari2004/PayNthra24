@@ -12,8 +12,10 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 
 const loginRoutes = require("./Router/loginRouter");
+const accountRoutes = require("./Router/AccountRouter");
 const AdminRouter = require("./Router/AdminRouter");
 const addClubRouter = require("./Router/AddClubRouter");
+const ensureInitialAccount = require("./utils/initialAccount");
 
 const app = express();
 
@@ -60,6 +62,7 @@ app.use((req, res, next) => {
 
 app.use("/api", loginRoutes);
 
+app.use("/api/accounts", accountRoutes);
 
 app.use("/api/admin", AdminRouter);
 
@@ -120,6 +123,7 @@ async function startServer() {
 
     console.log("MongoDB connected successfully");
     console.log("Database:", mongoose.connection.name);
+    await ensureInitialAccount();
 
     
     app.listen(PORT, () => {

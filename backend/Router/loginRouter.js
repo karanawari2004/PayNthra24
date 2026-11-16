@@ -1,50 +1,51 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const Account = require("../model/Account");
 const authenticateToken = require("../middleware/authenticateToken");
+const { setAuthCookie, clearAuthCookie } = require("../utils/authCookie");
 
 const router = express.Router();
 
-const isProd = process.env.NODE_ENV === "production";
-const authCookieOptions = {
-  httpOnly: true,
-  secure: isProd,
-  sameSite: isProd ? "none" : "lax",
-  path: "/",
-  maxAge: 8 * 60 * 60 * 1000,
-};
-
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body || {};
 
-  if (!username || !password) {
+  if (
+    typeof username !== "string" ||
+    !username.trim() ||
+    typeof password !== "string" ||
+    !password
+  ) {
     return res.status(400).json({
       success: false,
       message: "Username and password are required",
     });
   }
 
-  if (
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
-  ) {
-    const user = { username, role: "admin" };
-    const token = jwt.sign(user, process.env.JWT_SECRET, {
-      algorithm: "HS256",
-      expiresIn: "8h",
+  try {
+    const account = await Account.findOne({
+      username: username.trim().toLowerCase(),
     });
 
-    res.cookie("access_token", token, authCookieOptions);
+    if (!account || !(await bcrypt.compare(password, account.passwordHash))) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid username or password",
+      });
+    }
+
+    setAuthCookie(res, account);
     return res.json({
       success: true,
       message: "Login successful",
-      user,
+      user: { username: account.username, role: account.role },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to log in",
     });
   }
-
-  return res.status(401).json({
-    success: false,
-    message: "Invalid username or password",
-  });
 });
 
 
@@ -54,12 +55,7 @@ router.get("/session", authenticateToken, (req, res) => {
 
 
 router.post("/logout", (req, res) => {
-  res.clearCookie("access_token", {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
-    path: "/",
-  });
+  clearAuthCookie(res);
   return res.json({ success: true, message: "Logged out successfully" });
 });
 

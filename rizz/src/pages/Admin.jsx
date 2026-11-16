@@ -5,7 +5,7 @@ import api from "../api";
 import "./Admin.css";
 import "./Report.css";
 
-export default function Admin({ onLogout }) {
+export default function Admin({ user, onLogout, onUserUpdate }) {
   const navigate = useNavigate();
 
   const [clubName, setClubName] = useState("");
@@ -46,10 +46,76 @@ export default function Admin({ onLogout }) {
   const [searchEventDate, setSearchEventDate] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const [accountMode, setAccountMode] = useState("");
+  const [accountUsername, setAccountUsername] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [currentUsername, setCurrentUsername] = useState(user?.username || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newUsername, setNewUsername] = useState(user?.username || "");
+  const [newPassword, setNewPassword] = useState("");
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountNotice, setAccountNotice] = useState(null);
 
   
   const handleAddClub = () => {
     navigate("/add-club");
+  };
+
+  const openAccountForm = (mode) => {
+    setAccountMode(mode);
+    setAccountNotice(null);
+    setCurrentUsername(user?.username || "");
+    setNewUsername(user?.username || "");
+    setCurrentPassword("");
+    setNewPassword("");
+    setAccountUsername("");
+    setAccountPassword("");
+  };
+
+  const handleAccountSubmit = async (e) => {
+    e.preventDefault();
+    setAccountSaving(true);
+    setAccountNotice(null);
+
+    try {
+      if (accountMode === "add") {
+        await api.post("/accounts", {
+          username: accountUsername.trim(),
+          password: accountPassword,
+        });
+        setAccountUsername("");
+        setAccountPassword("");
+        setAccountNotice({
+          type: "success",
+          message: "Account added successfully.",
+        });
+      } else {
+        const response = await api.put("/accounts/credentials", {
+          currentUsername,
+          currentPassword,
+          newUsername: newUsername.trim(),
+          newPassword,
+        });
+        onUserUpdate?.(response.data.user);
+        setCurrentUsername(response.data.user.username);
+        setNewUsername(response.data.user.username);
+        setCurrentPassword("");
+        setNewPassword("");
+        setAccountNotice({
+          type: "success",
+          message: "Username and password updated successfully.",
+        });
+      }
+    } catch (error) {
+      setAccountNotice({
+        type: "error",
+        message:
+          error.response?.data?.message ||
+          "Unable to update the account. Please try again.",
+      });
+    } finally {
+      setAccountSaving(false);
+    }
   };
 
 
@@ -603,12 +669,134 @@ export default function Admin({ onLogout }) {
           <button
             type="button"
             className="admin-logout-btn"
+            onClick={() => openAccountForm("add")}
+          >
+            Add Account
+          </button>
+
+          <button
+            type="button"
+            className="admin-logout-btn"
+            onClick={() => openAccountForm("change")}
+          >
+            Change Credentials
+          </button>
+
+          <button
+            type="button"
+            className="admin-logout-btn"
             onClick={handleLogout}
           >
             Logout
           </button>
         </div>
       </header>
+
+      {accountMode && (
+        <section className="account-management-panel">
+          <h2>
+            {accountMode === "add" ? "Add Account" : "Change Credentials"}
+          </h2>
+
+          {accountNotice && (
+            <p
+              className={`account-management-message ${accountNotice.type}`}
+              role={accountNotice.type === "error" ? "alert" : "status"}
+            >
+              {accountNotice.message}
+            </p>
+          )}
+
+          <form
+            className="account-management-form"
+            onSubmit={handleAccountSubmit}
+          >
+            {accountMode === "change" ? (
+              <>
+                <div>
+                  <label htmlFor="currentUsername">Current Username</label>
+                  <input
+                    id="currentUsername"
+                    type="text"
+                    value={currentUsername}
+                    onChange={(e) => setCurrentUsername(e.target.value)}
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+              </>
+            ) : null}
+
+            <div>
+              <label htmlFor="accountNewUsername">
+                {accountMode === "add" ? "Username" : "New Username"}
+              </label>
+              <input
+                id="accountNewUsername"
+                type="text"
+                value={accountMode === "add" ? accountUsername : newUsername}
+                onChange={(e) =>
+                  accountMode === "add"
+                    ? setAccountUsername(e.target.value)
+                    : setNewUsername(e.target.value)
+                }
+                autoComplete="username"
+                maxLength={64}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="accountNewPassword">
+                {accountMode === "add" ? "Password" : "New Password"}
+              </label>
+              <input
+                id="accountNewPassword"
+                type="password"
+                value={accountMode === "add" ? accountPassword : newPassword}
+                onChange={(e) =>
+                  accountMode === "add"
+                    ? setAccountPassword(e.target.value)
+                    : setNewPassword(e.target.value)
+                }
+                autoComplete="new-password"
+                required
+              />
+            </div>
+
+            <div className="account-management-actions">
+              <button type="submit" disabled={accountSaving}>
+                {accountSaving
+                  ? "Saving..."
+                  : accountMode === "add"
+                    ? "Add Account"
+                    : "Update Credentials"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountMode("");
+                  setAccountNotice(null);
+                }}
+                disabled={accountSaving}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <div className="admin-content">
         <form id="admin-report-form" className="admin-form" onSubmit={handleSubmit}>
@@ -664,6 +852,7 @@ export default function Admin({ onLogout }) {
               type="date"
               id="eventDate"
               value={eventDate}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               onChange={(e) => setEventDate(e.target.value)}
               required
             />
@@ -677,6 +866,7 @@ export default function Admin({ onLogout }) {
               id="eventEndDate"
               value={eventEndDate}
               min={eventDate || undefined}
+              onClick={(e) => e.currentTarget.showPicker?.()}
               onChange={(e) => setEventEndDate(e.target.value)}
               required
             />
@@ -984,6 +1174,7 @@ export default function Admin({ onLogout }) {
                 type="date"
                 id="searchEventDate"
                 value={searchEventDate}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 onChange={(e) => setSearchEventDate(e.target.value)}
               />
             </div>

@@ -144,7 +144,11 @@ function AppRoutes() {
           path="/admin"
           element={
             user ? (
-              <Admin onLogout={handleLogout} />
+              <Admin
+                user={user}
+                onLogout={handleLogout}
+                onUserUpdate={setUser}
+              />
             ) : (
               <Navigate to="/" replace />
             )
@@ -189,7 +193,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
 
 
 

@@ -246,7 +246,7 @@ button {
 .admin-form input:disabled,
 .admin-form select:disabled,
 .admin-form textarea:disabled {
-  background-color: #edf1f5;
+  background-color: #ffffff;
   cursor: not-allowed;
 }
 
@@ -889,6 +889,99 @@ button {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 }
 
+.account-management-panel {
+  width: 100%;
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 22px;
+  background-color: #ffffff;
+  border: 1px solid #e0e6ee;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(23, 54, 93, 0.07);
+}
+
+.account-management-panel h2 {
+  margin: 0 0 16px;
+  color: #17365d;
+  font-size: 20px;
+}
+
+.account-management-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.account-management-form > div:not(.account-management-actions) {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.account-management-form label {
+  color: #243247;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-management-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #243247;
+  font-size: 16px;
+}
+
+.account-management-form input:focus {
+  border-color: #17365d;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(23, 54, 93, 0.1);
+}
+
+.account-management-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 10px;
+}
+
+.account-management-actions button {
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid #17365d;
+  border-radius: 6px;
+  background-color: #17365d;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-management-actions button[type="button"] {
+  background-color: #ffffff;
+  color: #17365d;
+}
+
+.account-management-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.account-management-message {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.account-management-message.success {
+  color: #175d30;
+}
+
+.account-management-message.error {
+  color: #b42318;
+}
+
 .history-search button,
 .admin-preview-btn {
   padding: 11px 17px;
@@ -908,6 +1001,20 @@ button {
 .history-search button:hover,
 .admin-preview-btn:hover {
   background: #1d4ed8;
+}
+
+@media screen and (max-width: 600px) {
+  .account-management-panel {
+    padding: 16px;
+  }
+
+  .account-management-form {
+    grid-template-columns: 1fr;
+  }
+
+  .account-management-actions {
+    flex-direction: column;
+  }
 }
 
 .admin-preview-btn {
