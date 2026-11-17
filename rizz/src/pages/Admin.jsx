@@ -5,7 +5,12 @@ import api from "../api";
 import "./Admin.css";
 import "./Report.css";
 
-export default function Admin({ user, onLogout, onUserUpdate }) {
+export default function Admin({
+  user,
+  onLogout,
+  onUserUpdate,
+  onSessionExpired,
+}) {
   const navigate = useNavigate();
 
   const [clubName, setClubName] = useState("");
@@ -179,25 +184,16 @@ export default function Admin({ user, onLogout, onUserUpdate }) {
   };
 
   
-  const handleLogout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (error) {
-      console.error(
-        "Logout API error:",
-        error.response?.data || error.message
-      );
-    } finally {
-      sessionStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("userRole");
-
-      if (onLogout) {
-        onLogout();
-      } else {
-        navigate("/login", { replace: true });
-      }
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+      return;
     }
+
+    api.post("/logout").catch((error) => {
+      console.error("Logout API error:", error.response?.data || error.message);
+    });
+    navigate("/", { replace: true });
   };
 
   
@@ -228,6 +224,11 @@ export default function Admin({ user, onLogout, onUserUpdate }) {
 
       setHistory([]);
 
+      if (error.response?.status === 401) {
+        onSessionExpired?.();
+        return;
+      }
+
       alert(
         error.response?.data?.message ||
           "Unable to fetch report history. Please check the server connection."
@@ -235,7 +236,7 @@ export default function Admin({ user, onLogout, onUserUpdate }) {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [onSessionExpired]);
 
   useEffect(() => {
     fetchHistory();

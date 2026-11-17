@@ -121,6 +121,12 @@ test("login, account creation, credential updates, and logout", async () => {
   const initialCookie = getCookie(initialLogin.response);
   assert.match(initialLogin.response.headers.get("set-cookie"), /HttpOnly/i);
 
+  const refreshedSession = await request("/api/session", {
+    cookie: initialCookie,
+  });
+  assert.equal(refreshedSession.response.status, 200);
+  assert.equal(refreshedSession.data.user.username, "initial");
+
   const addedAccount = await request("/api/accounts", {
     method: "POST",
     cookie: initialCookie,
@@ -188,4 +194,28 @@ test("login, account creation, credential updates, and logout", async () => {
 
   const afterLogout = await request("/api/session");
   assert.equal(afterLogout.response.status, 401);
+});
+
+test("existing MongoDB account prevents environment-based bootstrap", async () => {
+  accounts.length = 0;
+  const existingAccount = makeAccount({
+    username: "existing-admin",
+    passwordHash: await bcrypt.hash("existing-password", 4),
+  });
+  const initialUsername = process.env.ADMIN_USERNAME;
+  const initialPassword = process.env.ADMIN_PASSWORD;
+
+  delete process.env.ADMIN_USERNAME;
+  delete process.env.ADMIN_PASSWORD;
+
+  try {
+    const account = await ensureInitialAccount();
+
+    assert.equal(account, existingAccount);
+    assert.equal(accounts.length, 1);
+    assert.equal(account.username, "existing-admin");
+  } finally {
+    process.env.ADMIN_USERNAME = initialUsername;
+    process.env.ADMIN_PASSWORD = initialPassword;
+  }
 });

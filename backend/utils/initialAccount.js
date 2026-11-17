@@ -3,7 +3,7 @@ const Account = require("../model/Account");
 
 async function ensureInitialAccount() {
   await Account.init();
-  const existingAccount = await Account.findOne({ isInitialAccount: true });
+  const existingAccount = await Account.findOne({});
 
   if (existingAccount) {
     return existingAccount;
@@ -31,6 +31,11 @@ async function ensureInitialAccount() {
 
       if (accountCreatedByAnotherInstance) {
         return accountCreatedByAnotherInstance;
+      }
+
+      const existingAccountCreatedDuringBootstrap = await Account.findOne({});
+      if (existingAccountCreatedDuringBootstrap) {
+        return existingAccountCreatedDuringBootstrap;
       }
     }
 

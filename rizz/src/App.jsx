@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import AddClub from "./pages/AddClub";
 import Login from "./pages/Login";
@@ -46,7 +46,7 @@ function AppRoutes() {
     };
   }, []);
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     try {
       await api.post("/logout");
 
@@ -57,7 +57,12 @@ function AppRoutes() {
 
       setAuthError("Unable to sign out. Please try again.");
     }
-  }
+  }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    setUser(null);
+    setAuthError("");
+  }, []);
 
   if (isCheckingSession) {
     return (
@@ -148,6 +153,7 @@ function AppRoutes() {
                 user={user}
                 onLogout={handleLogout}
                 onUserUpdate={setUser}
+                onSessionExpired={handleSessionExpired}
               />
             ) : (
               <Navigate to="/" replace />
@@ -193,6 +199,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-
 

@@ -28,13 +28,16 @@ if (isProd) {
 
 
 const allowedOrigins = [
+  ...(process.env.FRONTEND_ORIGINS || "").split(","),
   process.env.FRONTEND_ORIGIN,
   process.env.CLIENT_URL,
+  "https://pay-nthra24.vercel.app",
   "http://localhost:5173",
   "http://localhost:5174",
 ]
   .filter(Boolean)
-  .map((origin) => origin.replace(/\/$/, ""));
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter((origin, index, origins) => origins.indexOf(origin) === index);
 
 app.use(
   cors({
@@ -105,12 +108,6 @@ async function startServer() {
     if (process.env.JWT_SECRET.length < 32) {
       throw new Error(
         "JWT_SECRET must be at least 32 characters long"
-      );
-    }
-
-    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) {
-      throw new Error(
-        "ADMIN_USERNAME and ADMIN_PASSWORD must be configured"
       );
     }
 
